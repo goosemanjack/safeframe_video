@@ -34,13 +34,44 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		req.send();
 	}
 	
+	function VastAd(node){
+		this.id = node.getAttribute('id');
+		this.sequence = node.getAttribute('sequence');
+	
+	}
+	
 	/**
 	* Instance object of a VAST document
 	*/
 	function VastDoc(xdoc){
+		var me = this;
 		this.xml = xdoc;
 		this.ads = [];
-	
+		this.isAdPod = false;
+		
+		function parseStructure(xml){
+			var ads, i;
+			var root = xml.documentElement;
+			if(root.tagName !== 'VAST'){
+				throw {message: 'Invalid VAST document'};
+			}
+			me.vast_version = root.getAttribute('version');
+			
+			ads = root.children;
+			for(i=0; i < ads.length; i++){
+				if(ads[i].tagName === 'AD'){
+					me.ads.push(new VastAd(ads[i]));
+				}
+			}
+			
+			if(me.ads.length > 1){
+				me.isAdPod = true;
+			}
+			
+			debugger;
+		}
+		
+		parseStructure(xdoc);
 	}
 	
 
@@ -53,14 +84,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		parser = new DOMParser();
 		xdoc = parser.parseFromString(source, 'text/xml');
 		
-		return xdoc;
+		return new VastDoc(xdoc);
 	
 	}
 	
 	var impl = {
 		
 		parseVast : function(source){		
-			return new VastDoc(parseVastSource(source));
+			return parseVastSource(source);
 		},
 		
 		loadVast: function(url, cb){

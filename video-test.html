@@ -2,11 +2,21 @@
 <html>
 <head>
 	<title>SafeFrame w VPAID test</title>
+	
+	<style type="text/css">
+	.relative{
+		position: relative;
+	}
+	</style>
+	
 </head>
 <body>
-<video id="video1" width="600" controls="">
+<div class='relative' id='adWrapper'>
+<video 8id="video1" width="600" controls="">
     Your browser does not support HTML5 video.
-  </video>
+</video>
+<div id='adOverlay'></div>
+</div>
 
   <br />
   <button type="button" id="playBtn">Play</button>
