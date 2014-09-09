@@ -1,0 +1,35 @@
+<VAST version="2.0">
+  <Ad id="static">
+    <InLine>
+      <AdSystem>Static VAST Template</AdSystem>
+      <AdTitle>Static VAST Tag</AdTitle>
+      <Impression>http://example.com/pixel.gif</Impression>
+      <Creatives>
+        <Creative>
+          <Linear>
+            <Duration>00:00:08</Duration>
+            <TrackingEvents>
+              <Tracking event="start">http://example.com/pixel.gif</Tracking>
+              <Tracking event="firstQuartile">http://example.com/pixel.gif</Tracking>
+              <Tracking event="midpoint">http://example.com/pixel.gif</Tracking>
+              <Tracking event="thirdQuartile">http://example.com/pixel.gif</Tracking>
+              <Tracking event="complete">http://example.com/pixel.gif</Tracking>
+              <Tracking event="pause">http://example.com/pixel.gif</Tracking>
+              <Tracking event="mute">http://example.com/pixel.gif</Tracking>
+              <Tracking event="fullscreen">http://example.com/pixel.gif</Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough>http://www.longtailvideo.com/</ClickThrough>
+              <ClickTracking>http://example.com/pixel.gif</ClickTracking>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile type="video/mp4" bitrate="300" width="480" height="270">
+                http://example.com/uploads/myPReroll.mp4
+              </MediaFile>
+            </MediaFiles>
+           </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>
