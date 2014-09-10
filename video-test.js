@@ -1,3 +1,4 @@
+'use strict';
 // https://www.youtube.com/watch?v=HOfdboHvshg  Sintel
 // http://developer.longtailvideo.com/ova  OpenVideoAds.org
 
@@ -14,6 +15,14 @@
 	'http://media.w3.org/2010/05/bunny/movie.mp4'
 	];
 	
+	var vastFileList = [
+	'ad3.liverail_com.xml',
+	'vast2VPAIDLinear.xml',
+	'doubleClick_xml.xml',
+	'myVastTag.xml',
+	'vast_inline_linear.xml'
+	];
+ 
 	
 	function getEl(id){
 		return doc.getElementById(id);
@@ -25,6 +34,7 @@
 	
 	function init(){
 		var btn = getEl('playBtn');
+		var i, sel, buf = [];
 		
 		btn.addEventListener('click', vidtest.loadVideo);
 		
@@ -35,9 +45,22 @@
 		console.log(hasDom);
 		
 		getEl('loadBtn').addEventListener('click', function(e){
-			window.vastParser.loadVast('./ads/vast2VPAIDLinear.xml', vastHere);
+			var sel = getEl('vastfile');
+			var file = sel.value;
+
+			window.vastParser.loadVast('./ads/' + file, vastHere);
 		});
 		
+		sel = getEl('vastfile');
+		for(i=0; i < vastFileList.length; i++){
+			buf.push('<option value="', vastFileList[i], '" ');
+			if(i == 0){
+				buf.push(' selected="selected" ');
+			}
+			buf.push(' >', vastFileList[i], '</option>');
+		}
+		
+		sel.innerHTML = buf.join('');
 	}
 	
 	
