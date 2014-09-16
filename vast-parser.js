@@ -23,6 +23,31 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		return (func != null && typeof(func) === 'function' && func.call != null);
 	}
 	
+	/*
+	* Initialize Polyfills
+	*/
+	(function (){
+		if (!String.prototype.trim) {
+		  String.prototype.trim = function () {
+			return this.replace(/^[\s\xA0]+|[\s\xA0]+$/g, '');
+		  };
+		}
+	})();
+	
+	/**
+	* Obtain the node text
+	*/
+	function nodeText(node){
+		var str = node.textContent || node.innerHTML || node.innerText || '';
+		
+		return str.trim();
+	}
+	
+	/**
+	* @function
+	* Retrieve all child element nodes from a given node.
+	* Accounts for cross-browser oddities.
+	*/
 	function childElements(node){
 		var kids, cn, i, ELTYPE = node.ELEMENT_NODE || 1;
 		
@@ -42,6 +67,23 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		}
 	}
 	
+	/**
+	* Create an object based on the list of attributes from a DOM node
+	*/
+	function objFromAttributes(node, attrList){
+		var i, a, obj = {};
+		
+		for(i=0; i < attrList.length; i++){
+			a = attrList[i];
+			obj[a] = node.getAttribute(a);
+		}
+		
+		return obj;
+	}
+	
+	/**
+	* Callback listener for XMLHttpRequest
+	*/
 	function reqListener(){
 		var x = this;
 		if(isFunc(this.cb_func)){
@@ -49,6 +91,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		}
 	}
 	
+	/**
+	* @function
+	* Fetches a remote XML file
+	*/
 	function getFile(url, cb){
 		var req = new XMLHttpRequest();
 		req.cb_func = cb;
@@ -60,10 +106,144 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 	/**
 	* Object representing a creative within the ad
 	*/
-	function VastCreative(node){
+	function VastCreative(node, parent){
+		var me = this;
+		var par = parent;
+		
 		this.sequence = node.getAttribute('sequence');
 		this.adId = node.getAttribute('adid');
 		this.id = node.getAttribute('id');
+		this.apiFramework = node.getAttribute('apiFramework');
+		
+		/**
+		* @function
+		* Retrieve companion ads associated with this ad or null
+		*/
+		this.getCompanionAds = function(){
+			var i, comp = null, c,
+				seq = me.sequence;
+			
+			if(!parent || (me.adType != 'linear' && me.adType != 'nonlinear')){
+				return null;
+			}
+			
+			for(i=0; i < par.creatives.length; i++){
+				c = par.creatives[i];
+				if(c.adType == 'companionads'){
+					if(c.sequence == null){
+						comp = c;
+					}
+					else if(c.sequence == seq){
+						return c;
+					}
+				}
+			}
+			
+			return comp;
+		}
+		
+		function parseTrackingEvents(detObj, trackingNode){
+			var i, tn, evt,
+				tracks = childElements(trackingNode),
+				tevts = detObj.trackingEvents || {};
+			
+			for(i=0; i < tracks.length; i++){
+				tn = tracks[i];
+				if(tn.tagName.toUpperCase() != 'TRACKING'){
+					continue;
+				}
+				
+				evt = tn.getAttribute('event');
+				tevts[evt] = {
+					event: evt,
+					url: nodeText(tn)
+				};
+			}
+			
+			// insure reassignment
+			detObj.trackingEvents = tevts;
+		}
+		
+		function parseCreative(node){
+			var i, n, kids, tname;
+			
+			kids = childElements(node);
+			if(kids.length == 0){
+				return;
+			}
+			else{
+				tname = kids[0].tagName.toLowerCase();
+				me.adType = tname;
+				if(tname == 'linear'){
+					parseLinear(kids[0]);
+				}
+				else if(tname == 'companionads'){
+					parseCompanionAds(kids[0]);
+				}
+				else if(tname == 'nonlinear'){
+					parseNonLinear(kids[0]);
+				}
+			}
+		}
+		
+		/**
+		* @function
+		* Parse a linear ad node
+		*/
+		function parseLinear(lnode){
+			var l, tn, k, mfiles, mf,
+				mfAttribs, mObj,
+				i, m, kids = childElements(lnode);
+			
+			mfAttribs = ['delivery', 'type', 'width', 'height',
+				'codec', 'id', 
+				'bitrate', 'minBitrate', 'maxBitrate',
+				'scalable', 'maintainAspectRatio', 'apiFramework' ];
+			
+			me.linear = {
+				duration : null,
+				mediaFiles: []
+			};
+			
+			l = me.linear;
+			
+			for(i=0; i < kids.length; i++){
+				k = kids[i];
+				tn = k.tagName.toUpperCase();
+				switch(tn){
+					case 'DURATION':
+						l.duration = nodeText(k);
+						break;
+					case 'MEDIAFILES':
+						mfiles = childElements(k);
+						for(m=0; m < mfiles.length; m++){
+							mf = mfiles[m];
+							mObj = objFromAttributes(mf, mfAttribs);
+							mObj.url = nodeText(mf);
+							l.mediaFiles.push(mObj); 
+						}
+					case 'TRACKINGEVENTS':
+						parseTrackingEvents(l, k);
+						break;
+						
+					case 'ADPARAMETERS':
+					case 'VIDEOCLICKS':
+					case 'ICONS':
+						break;
+				
+				}
+			}			
+		}
+		function parseCompanionAds(cnode){
+		
+		}
+		function parseNonLinear(nlnode){
+		
+		}
+		
+		
+		// Begin parsing
+		parseCreative(node);
 	}
 	
 	/**
@@ -99,11 +279,16 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 			}		
 		}
 		
+		/**
+		* @function
+		* Parsing routine for the INLINE tag element and children
+		*/
 		function parseInlineAd(ilnode){
 			var i, m, n, key, kidNode, adSys, url, adname, vnum, sysname;
 			var cr, crar, allcr;
 			var kids = childElements(ilnode);
 			me.isWrapper = false;
+			me.isInline = true;
 			
 			for(i=0; i < kids.length; i++){
 				kidNode = kids[i];
@@ -138,20 +323,56 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 						break;
 						
 					case 'ADTITLE':
-						adname = kidNode.textContent || kidNode.innerHTML;
+						adname = nodeText(kidNode);
 						me.adName = adname;
 						break;
 						
 					case 'IMPRESSION':
-						url = kidNode.textContent || kidNode.innerHTML;
+						url = nodeText(kidNode);
 						me.impressions.push({id: kidNode.getAttribute('id'), url: url});
 						break;
 					
 					case 'CREATIVES':
 						allcr = childElements(kidNode);
 						for(m=0; m < allcr.length; m++){
-							me.creatives.push(new VastCreative(allcr[m]));
+							me.creatives.push(new VastCreative(allcr[m], me));
 						}
+						break;
+					
+					// Optional Inline Elements - 2.2.4.2
+					case 'DESCRIPTION':
+						me.description = nodeText(kidNode);
+						break;
+						
+					case 'ADVERTISER':
+						me.advertiser = nodeText(kidNode);
+						break;
+					
+					case 'SURVEY':
+						if(me.survey === undefined){
+							me.survey = [];
+						}
+						// open for interpretation
+						me.survey.push({
+							attributes: {},
+							content: kidNode.innerHTML
+						});
+						for(m=0; m < kidNode.attributes; m++){
+							me.survey.attributes[kidNode.attributes.name] = kidNode.attributes.value;
+						}
+						break;
+						
+					case 'PRICING':
+						me.pricing = {
+							model : kidNode.getAttribute('model'),
+							currency: kidNode.getAttribute('currency'),
+							value: nodeText(kidNode)
+						};
+						break;
+						
+					case 'EXTENSIONS':
+						me.extensions = kidNode.innerHTML;
+						break;
 				
 				}
 				

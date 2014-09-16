@@ -30,6 +30,8 @@
 	
 	function vastHere(vdoc){
 		console.log(vdoc);
+		
+		var c = vdoc.ads[0].creatives[0].getCompanionAds();
 	}
 	
 	function init(){
