@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SafeFrame w VPAID test</title>
+	
+	<style type="text/css">
+	.relative{
+		position: relative;
+	}
+	</style>
+	
+</head>
+<body>
+<h1>SafeFrame Video Test</h1>
+
+<hr>
+<div id="contentVideo"></div>
+
+
+
+
+<script type='text/x-safeframe' class='sf_data' id="sf_tag_1" >
+{
+	"id" : "adVideo",
+	"src" : "http://localhost:82/video-bootstrap.js",
+	"conf" : 
+		{
+		"size" : "1000x500",
+		"dest":	"contentVideo"
+		}
+} 
+</script> 
+
+
+	<script type="text/javascript" src="http://localcdn/SafeFrame/safeframes-code/src/js/lib/base.js"></script>
+    <script type="text/javascript" src="http://localcdn/SafeFrame/safeframes-code/src/js/host/host.js"></script>
+    <script type="text/javascript" src="http://localcdn/SafeFrame/safeframes-code/src/js/lib/boot.js"></script>
+
+	<script type="text/javascript">
+		/**
+		* Initialize a new SafeFrames publisher configuration
+		*/
+			(function() {
+				var conf	= new $sf.host.Config({
+					// Should be absolute path to render file hosted on CDN
+					renderFile:		"http://localcdn/SafeFrame/safeframes-code/src/html/r.html",
+					positions: {}
+				});
+
+			})();
+		
+		
+		</script>
+
+</body>
+</html>

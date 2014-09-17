@@ -117,6 +117,12 @@
 			}
 		}
 	}
+	
+	function loadVastFile(){
+		var sel = getEl('vastfile');
+		var file = sel.value;
+		window.vastParser.loadVast('http://localcdn/SafeFrame/safeframe_video/ads/' + file, vastHere);
+	}
 
 	
 	function init(){
@@ -133,10 +139,7 @@
 		console.log(hasDom);
 		
 		getEl('loadBtn').addEventListener('click', function(e){
-			var sel = getEl('vastfile');
-			var file = sel.value;
-
-			window.vastParser.loadVast('./ads/' + file, vastHere);
+			loadVastFile();
 		});
 		
 		sel = getEl('vastfile');
@@ -153,6 +156,13 @@
 		
 		vid.addEventListener('play', playHandler);
 		// vid.addEventListener('timeupdate', timeUpdateHandler);
+		
+		loadVastFile();
+		
+		setTimeout(function(){
+			impl.loadVideo();
+		}, 200);
+		
 	}
 	
 	
