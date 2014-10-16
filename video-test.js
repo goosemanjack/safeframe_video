@@ -10,6 +10,8 @@
 		readyFired = false,
 		readyEventAttached = false;
 		
+	var vastparser = win.$iab.vastparser;
+		
 	var videoList = [
 	'http://media.w3.org/2010/05/sintel/trailer.mp4',
 	'http://media.w3.org/2010/05/bunny/movie.mp4'
@@ -121,7 +123,7 @@
 	function loadVastFile(){
 		var sel = getEl('vastfile');
 		var file = sel.value;
-		window.vastParser.loadVast('http://localcdn/SafeFrame/safeframe_video/ads/' + file, vastHere);
+		vastparser.loadVast('http://localcdn/SafeFrame/safeframe_video/ads/' + file, vastHere);
 	}
 
 	

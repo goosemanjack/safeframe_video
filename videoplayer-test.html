@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Vsuite Player test</title>
+	
+	<style type="text/css">
+	.relative{
+		position: relative;
+	}
+	</style>
+	
+</head>
+<body>
+<h1>VsuitePlayer Video Test</h1>
+
+<hr>
+
+
+<div class="relative" id="videoWrapper"></div>
+  <script src="http://localhost:82/iab-videoplayer.js"></script>
+  <script src="http://localhost:82/vast-parser.js"></script> 
+  <script src="http://localhost:82/video-test.js"></script> 
+  <script type="text/javascript"> 
+	var vplayer = new $iab.VsuitePlayer("videoWrapper", 
+		{ 
+			width: '600', 
+			height: '480', 
+			playlist: [
+				'http://media.w3.org/2010/05/sintel/trailer.mp4'
+			],
+			ads: {
+				companions: {
+					regions: [
+						{
+						  "id": "companion-80x300",
+						  "width": 80,
+						  "height": 300,
+						  position: 'right'
+						}
+					]
+				},
+				schedule: [
+				  {
+					"position": "pre-roll",
+					"tag": "http://localhost:82/ads/openx-fc-vast2-0.xml?format=vast&charset=UTF-8"
+				  }
+				]
+			}
+		}
+	).start();
+  </script> 
+
+<!--
+<script src="vsuiteplayer-bootstrap.js" ></script>
+-->
+
+</body>
+</html>

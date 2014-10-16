@@ -12,12 +12,11 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 'use strict';
 
-(function(win, key){
-	var doc = document,
-		ihook,
-		key = key || '$vastParser';
-		
+(function(win){
+	var iab = win['$iab'] || {};
+	var doc = document;
 	var NULL = null;
+	var COMPANION_ADS = 'companionads'
 		
 	function isFunc(func){
 		return (func != null && typeof(func) === 'function' && func.call != null);
@@ -104,6 +103,109 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 	}
 	
 	/**
+	* @class 
+	* Object representing a companion ad
+	*/
+	function CompanionAd(adNode){
+		var me = this;
+		this.resourceType = null;
+		this.content = null;
+		
+		/**
+		* @function
+		* Generate the HTML content appropriate for this type of companion ad
+		*/
+		this.getContent = function(){
+			var code, ct = me.creativeType;
+			if(me.resourceType == null || me.content == null){
+				return '';
+			}
+			switch(me.resourceType){
+				case 'htmlresource':
+					return me.content;
+				case 'staticresource':
+					ct = me.creativeType && me.creativeType.toLowerCase() || null;
+					if(!ct || ct.indexOf('image') > -1){
+						code = '<img src="' + me.content + '" '
+						if(me.width){
+							code += ' width="' + me.width + '" ';
+						}
+						if(me.height){
+							code += ' height="' + me.height + '" ';
+						}
+						code += ' />';
+					}
+					return code;
+					break;
+					
+				case 'iframeresource':
+					code = '<iframe src="' + me.content + '" ';
+					if(me.width){
+						code += ' width="' + me.width + '" ';
+					}
+					if(me.height){
+						code += ' height="' + me.height + '" ';
+					}
+					code += ' border="0" frameborder="0" style="border:0;" ></iframe>';
+					
+					return code;
+					break;
+			
+			}		
+		}		
+		
+		function parse(node){
+			var tn, i, kids, k;
+			var msg;
+			var compAttribs = ['id', 'width', 'height', 'expandedwidth', 'expandedheight', 'apiFramework' ];
+			
+			if(!node || !node.tagName || node.tagName.toUpperCase() !== 'COMPANION'){
+				throw {message: 'Not a valid companion ad node'};
+			}
+			
+			for(i=0; i < compAttribs.length; i++){
+				me[compAttribs[i]] = node.getAttribute(compAttribs[i]) || null;
+			}
+			
+			kids = childElements(node);
+			for(i=0; i < kids.length; i++){
+				k = kids[i];
+				tn = k.tagName.toUpperCase();
+				switch(tn){
+					case 'STATICRESOURCE':
+					case 'IFRAMERESOURCE':
+					case 'HTMLRESOURCE':
+						if(me.resourceType != null){
+							msg = 'Only one resource type may be specified\n'
+								+ 'found: ' + me.resourceType + ' and ' + tn.toLowerCase();
+							throw {message: msg };
+						}
+						me.resourceType = tn.toLowerCase();
+						me.creativeType = k.getAttribute('creativeType');
+						me.content = nodeText(k);
+						break;
+					case 'TRACKINGEVENTS':
+						parseTrackingEvents(l, k);
+						break;
+					case 'ALTTEXT':
+						me.altText = nodeText(k);
+	
+					
+					case 'ADPARAMETERS':
+					case 'COMPANIONCLICKTHROUGH':
+					case 'ICONS':
+						break;
+				
+				}
+			}
+			
+			
+		}
+
+		parse(adNode);
+	}
+	
+	/**
 	* Object representing a creative within the ad
 	*/
 	function VastCreative(node, parent){
@@ -121,15 +223,17 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		*/
 		this.getCompanionAds = function(){
 			var i, comp = null, c,
+				len,
 				seq = me.sequence;
 			
-			if(!parent || (me.adType != 'linear' && me.adType != 'nonlinear')){
+			if(!parent || (me.adType != 'linear' && me.adType != 'nonlinear') || par.creative_companions.length == 0){
 				return null;
 			}
 			
-			for(i=0; i < par.creatives.length; i++){
-				c = par.creatives[i];
-				if(c.adType == 'companionads'){
+			len = par.creative_companions.length;
+			for(i=0; i < len; i++){
+				c = par.creative_companions[i];
+				if(c.adType == COMPANION_ADS){
 					if(c.sequence == null){
 						comp = c;
 					}
@@ -177,7 +281,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 				if(tname == 'linear'){
 					parseLinear(kids[0]);
 				}
-				else if(tname == 'companionads'){
+				else if(tname == COMPANION_ADS){
 					parseCompanionAds(kids[0]);
 				}
 				else if(tname == 'nonlinear'){
@@ -235,7 +339,14 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 			}			
 		}
 		function parseCompanionAds(cnode){
-		
+			var k,
+				i, kids = childElements(cnode);
+			
+			me.companions = [];
+			
+			for(i=0; i < kids.length; i++){
+				me.companions.push(new CompanionAd(kids[i]));
+			}		
 		}
 		function parseNonLinear(nlnode){
 		
@@ -256,6 +367,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		this.sequence = node.getAttribute('sequence');
 		this.impressions = [];
 		this.creatives = [];
+		this.creative_companions = [];
 		
 		// optional elements -  - section 2.2.4.2
 		this.description = NULL;
@@ -335,7 +447,13 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 					case 'CREATIVES':
 						allcr = childElements(kidNode);
 						for(m=0; m < allcr.length; m++){
-							me.creatives.push(new VastCreative(allcr[m], me));
+							cr = new VastCreative(allcr[m], me);
+							if(cr.adType == COMPANION_ADS){
+								me.creative_companions.push(cr);
+							}
+							else{
+								me.creatives.push(cr);
+							}
 						}
 						break;
 					
@@ -395,6 +513,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		function parseStructure(xml){
 			var ads, i;
 			var root = xml.documentElement;
+			// version 2.0 forward should use VAST as the root node
 			if(root.tagName.toUpperCase() !== 'VAST'){
 				throw {message: 'Invalid VAST document'};
 			}
@@ -448,9 +567,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 		}
 	}
 	
-	ihook = impl;
-	win[key] = impl;
+	iab.vastparser = impl;
+	win['$iab'] = iab;
 
-
-})(window, 'vastParser');
+})(window);
 
